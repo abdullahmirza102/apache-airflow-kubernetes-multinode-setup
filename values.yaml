@@ -1,0 +1,175 @@
+airflowVersion: "2.9.3"
+# Configure Kubernetes Executor
+executor: "KubernetesExecutor"
+# Add static webserver secret key
+webserverSecretKey: "a-very-secret-key-that-is-32-bytes"
+# Disable built-in PostgreSQL since you have your own
+postgresql:
+  enabled: false
+# Configure PostgreSQL connection
+data:
+  metadataConnection:
+    user: airflow
+    pass: airflow123
+   # host: postgres.airflow.svc.cluster.local
+    host: "10.109.216.225" 
+    port: 5432
+    db: airflow
+    protocol: postgresql
+# Configure database migration
+migrateDatabaseJob:
+  enabled: true
+  nodeSelector:
+    kubernetes.io/hostname: drdenovonet03
+# Configure persistence
+dags:
+  persistence:
+    enabled: true
+    existingClaim: airflow-dags
+    size: 30Gi
+ # Maps your host path to this container path
+logs:
+  persistence:
+    enabled: true
+    existingClaim: airflow-logs
+    size: 35Gi
+# Maps your host path to this container path
+# Define the global storage class
+global:
+  storageClass: "local-storage"
+# Environment variables
+env:
+  - name: AIRFLOW__CORE__LOAD_EXAMPLES
+    value: "false"
+  - name: AIRFLOW__KUBERNETES__NAMESPACE
+    value: airflow
+  - name: AIRFLOW__KUBERNETES_EXECUTOR__NAMESPACE
+    value: airflow
+  - name: AIRFLOW__KUBERNETES__WORKER_CONTAINER_REPOSITORY
+    value: apache/airflow
+  - name: AIRFLOW__KUBERNETES__WORKER_CONTAINER_TAG
+    value: "2.9.3"
+  - name: AIRFLOW__KUBERNETES__DELETE_WORKER_PODS
+    value: "True"
+  - name: AIRFLOW__CORE__EXECUTOR
+    value: KubernetesExecutor
+  - name: AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_ENABLED
+    value: "True"
+  - name: AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_SIZE
+    value: "20"
+  - name: AIRFLOW__DATABASE__SQL_ALCHEMY_MAX_OVERFLOW
+    value: "10"
+  - name: AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_RECYCLE
+    value: "1800"
+  - name: AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_PRE_PING
+    value: "True"
+  - name: AIRFLOW__METRICS__METRICS_USE_PATTERN_MATCH
+    value: "True"
+
+# Webserver configuration with optimized resources
+webserver:
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+    requests:
+      cpu: 2000m
+      memory: 2Gi
+  nodeSelector:
+    kubernetes.io/hostname: drdenovonet03
+  waitForMigrations:
+    enabled: true
+  service:
+    type: NodePort
+  
+  # Updated probe configurations
+  livenessProbe:
+    failureThreshold: 12
+    periodSeconds: 30
+    timeoutSeconds: 30
+    initialDelaySeconds: 90
+  
+  readinessProbe:
+    failureThreshold: 12
+    periodSeconds: 30
+    timeoutSeconds: 30
+    initialDelaySeconds: 90
+    
+  startupProbe:
+    failureThreshold: 12
+    periodSeconds: 15
+    timeoutSeconds: 30
+
+# Scheduler configuration with optimized resources
+scheduler:
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 6Gi
+    requests:
+      cpu: 2000m
+      memory: 3Gi
+  nodeSelector:
+    kubernetes.io/hostname: drdenovonet03
+  waitForMigrations:
+    enabled: true
+
+  livenessProbe:
+    failureThreshold: 8
+    periodSeconds: 120
+    timeoutSeconds: 60
+    initialDelaySeconds: 60
+  
+  startupProbe:
+    failureThreshold: 10
+    periodSeconds: 30
+    timeoutSeconds: 60
+# Configure Airflow settings
+config:
+  webserver:
+    expose_config: "False"
+    rbac: "True"
+  core:
+    dags_are_paused_at_creation: "True"
+    load_examples: "False"
+    secure_mode: "True"
+  scheduler:
+    min_file_process_interval: "60"
+    dag_dir_list_interval: "300"
+    print_stats_interval: "300"
+  kubernetes:
+    namespace: airflow
+    delete_worker_pods: "True"
+    in_cluster: "True"
+    worker_pods_creation_batch_size: "16"
+    pod_template_file: ""
+    image_pull_policy: "IfNotPresent"
+  kubernetes_executor:
+    namespace: airflow
+
+# Security settings
+securityContext:
+  runAsUser: 50000
+  fsGroup: 50000
+
+# Add triggerer configuration
+triggerer:
+  waitForMigrations:
+    enabled: true
+  nodeSelector:
+    kubernetes.io/hostname: drdenovonet03
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+      
+  livenessProbe:
+    failureThreshold: 8
+    periodSeconds: 120
+    timeoutSeconds: 60
+    initialDelaySeconds: 60
+  
+
